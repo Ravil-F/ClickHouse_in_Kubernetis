@@ -1,0 +1,44 @@
+#Файл с настройками, которые мы можем менять без редактирования основных YAML-файлов.
+# Например, версия ClickHouse, пароли, размер хранилища и т.д.
+# Конфигурация ClickHouse
+clickhouse:
+  # Версия ClickHouse (можно использовать теги из Docker Hub)
+  # https://hub.docker.com/r/clickhouse/clickhouse-server/tags
+  version: "23.3"
+
+# Конфигурация пользователей
+users:
+  admin:
+    # Пароль для администратора (будет захеширован автоматически)
+    password: "admin123"
+    # SHA256 хеш пароля (генерируется автоматически, можно переопределить)
+    password_sha256: ""
+  app_user:
+    password: "app123"
+    password_sha256: ""
+  readonly_user:
+    password: "readonly123"
+    password_sha256: ""
+
+# Конфигурация хранилища
+persistence:
+  # Размер хранилища
+  size: "2Gi"
+  # Класс хранилища (опционально)
+  storageClass: ""
+
+# Ресурсы
+resources:
+  requests:
+    memory: "512Mi"
+    cpu: "250m"
+  limits:
+    memory: "2Gi"
+    cpu: "1"
+
+# Конфигурация сервиса
+service:
+  # Тип сервиса: ClusterIP, NodePort, LoadBalancer
+  type: "ClusterIP"
+  # Порт для NodePort (только если type: NodePort)
+  nodePort: 30123
