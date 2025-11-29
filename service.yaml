@@ -1,0 +1,24 @@
+# Это объект, который предоставляет постоянный endpoint (сетевой адрес) для доступа к нашему приложению.
+# Поды могут пересоздаваться и менять IP-адреса, а сервис предоставляет стабильный адрес.
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: clickhouse
+  namespace: clickhouse
+  labels:
+    app: clickhouse
+spec:
+  type: {{ .Values.service.type | default "ClusterIP" }}
+  ports:
+  - port: 8123
+    targetPort: 8123
+    name: http
+    {{- if eq .Values.service.type "NodePort" }}
+    nodePort: {{ .Values.service.nodePort | default 30123 }}
+    {{- end }}
+  - port: 9000
+    targetPort: 9000
+    name: tcp
+  selector:
+    app: clickhouse
