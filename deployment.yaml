@@ -1,0 +1,95 @@
+# Это объект, который описывает, как запускать приложение.
+# Он управляет созданием подов (pod).
+# В поде работает один или несколько контейнеров.
+# В нашем случае один контейнер с ClickHouse. 
+# Deployment следит, чтобы всегда был запущен один экземпляр ClickHouse (replicas: 1).
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: clickhouse
+  namespace: clickhouse
+  labels:
+    app: clickhouse
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: clickhouse
+  template:
+    metadata:
+      labels:
+        app: clickhouse
+    spec:
+      containers:
+      - name: clickhouse
+        image: clickhouse/clickhouse-server:{{ .Values.clickhouse.version | default "latest" }}
+        ports:
+        - containerPort: 8123
+          name: http
+        - containerPort: 9000
+          name: tcp
+        - containerPort: 9004
+          name: mysql
+        - containerPort: 9005
+          name: postgresql
+        - containerPort: 9009
+          name: interserver
+        env:
+        - name: CLICKHOUSE_DB
+          value: "default"
+        - name: CLICKHOUSE_USER
+          value: "admin"
+        - name: CLICKHOUSE_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: clickhouse-secret
+              key: admin-password
+        volumeMounts:
+        - name: clickhouse-config
+          mountPath: /etc/clickhouse-server/config.d/
+          readOnly: true
+        - name: clickhouse-users
+          mountPath: /etc/clickhouse-server/users.d/
+          readOnly: true
+        - name: clickhouse-data
+          mountPath: /var/lib/clickhouse
+        - name: clickhouse-log
+          mountPath: /var/log/clickhouse-server
+        resources:
+          requests:
+            memory: {{ .Values.resources.requests.memory | default "512Mi" }}
+            cpu: {{ .Values.resources.requests.cpu | default "250m" }}
+          limits:
+            memory: {{ .Values.resources.limits.memory | default "2Gi" }}
+            cpu: {{ .Values.resources.limits.cpu | default "1" }}
+        livenessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        readinessProbe:
+          httpGet:
+            path: /ping
+            port: http
+          initialDelaySeconds: 5
+          periodSeconds: 5
+      volumes:
+      - name: clickhouse-config
+        configMap:
+          name: clickhouse-config
+          items:
+          - key: 01-clickhouse-config.xml
+            path: 01-clickhouse-config.xml
+      - name: clickhouse-users
+        configMap:
+          name: clickhouse-config
+          items:
+          - key: 02-clickhouse-users.xml
+            path: 02-clickhouse-users.xml
+      - name: clickhouse-data
+        persistentVolumeClaim:
+          claimName: clickhouse-pvc
+      - name: clickhouse-log
+        emptyDir: {}
